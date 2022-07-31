@@ -12,17 +12,17 @@ mod notion;
 #[clap(author, version, about)]
 struct Arguments {
     #[clap(short, long)]
-    feed_database_id: Option<String>,
+    notion_source_database_id: Option<String>,
     #[clap(short, long)]
-    reader_database_id: Option<String>,
+    notion_feed_database_id: Option<String>,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Arguments::parse();
 
-    let config =
-        Config::new(args.feed_database_id, args.reader_database_id).unwrap_or_else(|err| {
+    let config = Config::new(args.notion_source_database_id, args.notion_feed_database_id)
+        .unwrap_or_else(|err| {
             eprintln!("Failed to create application config: {}", err);
             process::exit(1)
         });

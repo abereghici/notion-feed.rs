@@ -1,0 +1,21 @@
+name: Get Feed
+
+on:
+  schedule:
+    - cron: '30 12 * * *' # 6pm IST
+  workflow_dispatch:
+
+jobs:
+  get-feed:
+    name: Run rust
+    runs-on: ubuntu-latest
+    env:
+      NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+      NOTION_SOURCE_DATABASE_ID: ${{ secrets.NOTION_SOURCE_DATABASE_ID }}
+      NOTION_FEED_DATABASE_ID: ${{ secrets.NOTION_FEED_DATABASE_ID }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo run
