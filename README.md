@@ -2,6 +2,9 @@
 
 A Rust app for creating RSS Feeds in [Notion](https://notion.so).
 
+<a href="https://www.producthunt.com/posts/notion-rss-feed?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-notion&#0045;rss&#0045;feed" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=354281&theme=light" alt="Notion&#0032;RSS&#0032;Feed - A&#0032;Rust&#0032;app&#0032;for&#0032;creating&#0032;RSS&#0032;Feeds&#0032;in&#0032;Notion&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
+
 ![](./images/showcase.gif)
 
 ---
