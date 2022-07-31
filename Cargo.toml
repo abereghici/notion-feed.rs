@@ -1,0 +1,21 @@
+[package]
+name = "notion-feed"
+version = "0.1.0"
+edition = "2021"
+authors = ["Alexandru Bereghici <alexandru.brg@gmail.com>"]
+description = "A Rust app for creating RSS Feeds in Notion."
+license = "MIT"
+repository = "https://github.com/abereghici/notion-feed.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = { version = "0.4.19", features = ["serde"] }
+clap = { version = "3.2.15", features = ["derive"] }
+futures = "0.3.21"
+reqwest = { version = "0.11.11", features = ["json"] }
+rss = "2.0.1"
+serde = { version = "1.0.139", features = ["derive"] }
+serde_json = "1.0.82"
+temp-env = "0.2.0"
+tokio = { version = "1.20.0", features = ["full"] }
