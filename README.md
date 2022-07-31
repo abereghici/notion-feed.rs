@@ -17,7 +17,7 @@ A Rust app for creating RSS Feeds in [Notion](https://notion.so).
 1. Create a new [Notion Integration](https://www.notion.so/my-integrations) and
    copy the secret code which we'll use as `NOTION_API_TOKEN` later.
 2. Duplicate the
-   [template](https://www.notion.so/abereghici/Notion-Feed-Template-c5eec347363e4bcb880bfbc6b9030c79)
+   [template](https://abereghici.notion.site/Notion-Feed-Template-c5eec347363e4bcb880bfbc6b9030c79)
    to your Notion.
 3. Open the template and click _Share > Invite_ and search the Notion
    integration you created in Step 1 and Click **Invite**.
