@@ -11,9 +11,9 @@ mod notion;
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
 struct Arguments {
-    #[clap(short, long)]
+    #[clap(long)]
     notion_source_database_id: Option<String>,
-    #[clap(short, long)]
+    #[clap(long)]
     notion_feed_database_id: Option<String>,
 }
 
