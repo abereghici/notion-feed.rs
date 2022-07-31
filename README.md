@@ -43,11 +43,11 @@ A Rust app for creating RSS Feeds in [Notion](https://notion.so).
 
 The application accepts the source database ID and feed database ID as
 parameters. This can be useful if you want to configure multiple RSS feeds in
-**Get Feed** action [here](.github/workflows/main.yml#L20). Example:
+**Get Feed** action [here](./.github/workflows/main.yml#L21). Example:
 
 ```
 cargo run --notion-source-database-id=... --notion-feed-database-id=...
 ```
 
 The feed will be updated daily at 12:30 UTC. If you want to change the time, you
-can change the cron job [here](.github/workflows/main.yml#L5)
+can change the cron job [here](./.github/workflows/main.yml#L5)
