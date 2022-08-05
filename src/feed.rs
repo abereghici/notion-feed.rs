@@ -60,8 +60,6 @@ impl<'a> Feed<'a> {
                         None => Some(Utc::now()),
                     };
 
-                    println!("{:?}", created_time);
-
                     if let (Some(title), Some(link), Some(created_time)) =
                         (title, link, created_time)
                     {
@@ -181,8 +179,6 @@ impl<'a> Feed<'a> {
             .client
             .create_page(DatabaseKind::Feed, page_props)
             .await;
-
-        println!("{:?}", result);
 
         Ok(result?)
     }
