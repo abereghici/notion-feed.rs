@@ -1,8 +1,9 @@
 use crate::notion::{
     database::{DatabaseFilter, DatabaseKind, DatabaseQuery, Filter, FilterKind},
-    models::{Page, PropertyValue, RichText, Text},
+    models::{Date, Page, PropertyValue, RichText, Text},
     Client,
 };
+use chrono::{DateTime, Utc};
 use futures::{future, try_join};
 use rss::Channel;
 use std::{collections::HashMap, convert::identity, error::Error};
@@ -44,9 +45,31 @@ impl<'a> Feed<'a> {
                 .map(|item| {
                     let title = &item.title;
                     let link = &item.link;
+                    let pub_date = &item.pub_date;
 
-                    if let (Some(title), Some(link)) = (title, link) {
-                        return Some(self.add_reader_entry(title.to_string(), link.to_string()));
+                    let created_time = match pub_date {
+                        Some(date) => {
+                            let date = DateTime::parse_from_rfc2822(date);
+
+                            if let Ok(date) = date {
+                                Some(date.with_timezone(&Utc))
+                            } else {
+                                None
+                            }
+                        }
+                        None => Some(Utc::now()),
+                    };
+
+                    println!("{:?}", created_time);
+
+                    if let (Some(title), Some(link), Some(created_time)) =
+                        (title, link, created_time)
+                    {
+                        return Some(self.add_feed_entry(
+                            title.to_string(),
+                            link.to_string(),
+                            created_time,
+                        ));
                     }
                     None
                 })
@@ -115,10 +138,11 @@ impl<'a> Feed<'a> {
         Ok(map_page_to_links(pages))
     }
 
-    pub async fn add_reader_entry(
+    pub async fn add_feed_entry(
         &self,
         title: String,
         link: String,
+        created_time: DateTime<Utc>,
     ) -> Result<Page, Box<dyn Error>> {
         let page_props = HashMap::from([
             (
@@ -142,12 +166,25 @@ impl<'a> Feed<'a> {
                 "Starred".to_string(),
                 PropertyValue::Checkbox { checkbox: false },
             ),
+            (
+                "Published At".to_string(),
+                PropertyValue::Date {
+                    date: Some(Date {
+                        start: Some(created_time),
+                        end: None,
+                    }),
+                },
+            ),
         ]);
 
-        Ok(self
+        let result = self
             .client
             .create_page(DatabaseKind::Feed, page_props)
-            .await?)
+            .await;
+
+        println!("{:?}", result);
+
+        Ok(result?)
     }
 
     pub async fn get_rss_items(source: String) -> Result<Channel, Box<dyn Error>> {

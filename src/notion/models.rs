@@ -32,6 +32,13 @@ pub enum RichText {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(rename_all = "snake_case")]
+pub struct Date {
+    pub start: Option<DateTime<Utc>>,
+    pub end: Option<DateTime<Utc>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum PropertyValue {
@@ -50,6 +57,9 @@ pub enum PropertyValue {
     },
     Formula {
         expression: Option<String>,
+    },
+    Date {
+        date: Option<Date>,
     },
     CreatedTime {
         created_time: DateTime<Utc>,
