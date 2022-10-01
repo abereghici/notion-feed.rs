@@ -9,10 +9,6 @@ jobs:
   build:
     name: Build Rust
     runs-on: ubuntu-latest
-    env:
-      NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
-      NOTION_SOURCE_DATABASE_ID: ${{ secrets.NOTION_SOURCE_DATABASE_ID }}
-      NOTION_FEED_DATABASE_ID: ${{ secrets.NOTION_FEED_DATABASE_ID }}
     steps:
       - name: Set up Repository
         uses: actions/checkout@v2
