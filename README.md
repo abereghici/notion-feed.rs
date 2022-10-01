@@ -45,7 +45,7 @@ A Rust app for creating RSS Feeds in [Notion](https://notion.so).
 
 The application accepts the source database ID and feed database ID as
 parameters. This can be useful if you want to configure multiple RSS feeds in
-**Get Feed** action [here](./.github/workflows/main.yml#L20). Example:
+**Get Feed** action [here](./.github/workflows/main.yml#L21). Example:
 
 ```
 ./notion-feed --notion-source-database-id=... --notion-feed-database-id=...
