@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build Rust
+    runs-on: ubuntu-latest
+    env:
+      NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+      NOTION_SOURCE_DATABASE_ID: ${{ secrets.NOTION_SOURCE_DATABASE_ID }}
+      NOTION_FEED_DATABASE_ID: ${{ secrets.NOTION_FEED_DATABASE_ID }}
+    steps:
+      - name: Set up Repository
+        uses: actions/checkout@v2
+        with:
+          ref: main
+      - name: Build Project
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - run: cargo +nightly build --release --out-dir=build -Z unstable-options
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: build
+
+  commit-build:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Repository
+        uses: actions/checkout@v2
+        with:
+          ref: build
+
+      - name: Download Build
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+
+      - name: Commit and Push
+        run: |
+          if [ $(git status build --porcelain=v1 2>/dev/null | wc -l) != "0" ] ; then
+            git config user.name "GitHub Actions"
+            git config user.email noreply@github.com
+            git add build
+            git commit -m "chore: updated build"
+            git push origin HEAD --force
+          fi
