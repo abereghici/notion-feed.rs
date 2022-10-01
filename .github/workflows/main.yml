@@ -16,6 +16,6 @@ jobs:
     steps:
       - name: Update Notion Feed
         run: |
-          curl -o notion-feed https://github.com/abereghici/notion-feed.rs/raw/build/build/notion-feed
-          chmod +x ./notion-feed
+          curl -L -o notion-feed https://github.com/abereghici/notion-feed.rs/raw/build/build/notion-feed 
+          chmod +x ./notion-feed 
           ./notion-feed
