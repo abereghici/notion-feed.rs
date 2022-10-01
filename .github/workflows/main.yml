@@ -16,5 +16,5 @@ jobs:
     steps:
       - name: Update Notion Feed
         run: |
-          curl -o index.js https://github.com/abereghici/notion-feed.rs/raw/build/build/notion-feed
+          curl -o notion-feed https://github.com/abereghici/notion-feed.rs/raw/build/build/notion-feed
           ./notion-feed
