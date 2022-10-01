@@ -17,13 +17,13 @@ jobs:
       - name: Build Project
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
-      - run: cargo +nightly build --release --out-dir=build -Z unstable-options
+          toolchain: stable
+      - run: cargo build --release
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: build
-          path: build
+          path: target/release
 
   commit-build:
     needs: build
