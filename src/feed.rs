@@ -14,7 +14,7 @@ pub struct Feed<'a> {
 
 impl<'a> Feed<'a> {
     pub fn new(client: &'a Client<'a>) -> Feed<'a> {
-        Feed { client }
+        Self { client }
     }
 
     pub async fn run(&self) -> Result<(), Box<dyn Error>> {

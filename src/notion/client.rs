@@ -16,7 +16,7 @@ pub struct Client<'a> {
 }
 
 impl<'a> Client<'a> {
-    pub fn new(config: &Config) -> Result<Client, Box<dyn Error>> {
+    pub fn new(config: &'a Config) -> Result<Client, Box<dyn Error>> {
         let headers = HeaderMap::from_iter(vec![
             (
                 HeaderName::from_str("Authorization")?,
@@ -32,7 +32,7 @@ impl<'a> Client<'a> {
             .default_headers(headers)
             .build()?;
 
-        Ok(Client { config, client })
+        Ok(Self { config, client })
     }
 
     pub fn build_request<U: IntoUrl>(&self, method: Method, path: U) -> RequestBuilder {
