@@ -1,12 +1,11 @@
+use chrono::{DateTime, TimeZone, Utc};
 use futures::{future, try_join};
-use rss::Channel;
+use rss::{Channel, Item};
 
-use crate::{
-    feed::source,
-    notion::{
-        database::{DatabaseFilter, DatabaseKind, DatabaseQuery, Filter, FilterKind},
-        Client,
-    },
+use crate::notion::{
+    database::{DatabaseFilter, DatabaseKind, DatabaseQuery, Filter, FilterKind},
+    models::{Date, Page, PropertyValue, RichText, Text},
+    Client,
 };
 use std::{collections::HashMap, convert::identity, error::Error};
 
@@ -24,14 +23,68 @@ impl<'a> Feed<'a> {
     pub async fn run(&self) -> Result<(), Box<dyn Error>> {
         let (source_list, feed_list) = try_join!(self.get_source_list(), self.get_feed_list())?;
 
-        let channels = future::join_all(
+        let channel_items = future::join_all(
             source_list
                 .into_iter()
                 .map(|source| Feed::<'_>::get_rss_items(source)),
         )
         .await;
 
-        dbg!(channels);
+        let mut all_items = vec![];
+
+        channel_items.iter().for_each(|item| {
+            if let Ok(item) = item {
+                all_items.extend(item);
+            }
+        });
+
+        let feed_list_links = feed_list
+            .into_iter()
+            .map(|item| item.link)
+            .collect::<Vec<String>>();
+
+        future::join_all(
+            all_items
+                .iter()
+                .filter(|item| match &item.link {
+                    Some(link) => !feed_list_links.contains(link),
+                    None => false,
+                })
+                .map(|item| {
+                    let title = &item.title;
+                    let link = &item.link;
+                    let pub_date = &item.pub_date;
+
+                    let created_time = match pub_date {
+                        Some(date) => {
+                            let date = Utc.datetime_from_str(
+                                &format!("{} 00:00:00", date),
+                                "%Y-%m-%d %H:%M:%S",
+                            );
+
+                            if let Ok(date) = date {
+                                Some(date)
+                            } else {
+                                Some(Utc::now())
+                            }
+                        }
+                        None => Some(Utc::now()),
+                    };
+
+                    if let (Some(title), Some(link), Some(created_time)) =
+                        (title, link, created_time)
+                    {
+                        return Some(self.add_feed_entry(
+                            title.to_string(),
+                            link.to_string(),
+                            created_time,
+                        ));
+                    }
+                    None
+                })
+                .filter_map(identity),
+        )
+        .await;
 
         Ok(())
     }
@@ -102,10 +155,86 @@ impl<'a> Feed<'a> {
             .collect::<Vec<FeedItem>>());
     }
 
-    pub async fn get_rss_items(source: Source) -> Result<Channel, Box<dyn Error>> {
+    pub async fn add_feed_entry(
+        &self,
+        title: String,
+        link: String,
+        created_time: DateTime<Utc>,
+    ) -> Result<Page, Box<dyn Error>> {
+        let page_props = HashMap::from([
+            (
+                "Title".to_string(),
+                PropertyValue::Title {
+                    title: vec![RichText::Text {
+                        rich_text: None,
+                        text: Text {
+                            content: title,
+                            link: None,
+                        },
+                    }],
+                },
+            ),
+            ("Link".to_string(), PropertyValue::Url { url: Some(link) }),
+            (
+                "Read".to_string(),
+                PropertyValue::Checkbox { checkbox: false },
+            ),
+            (
+                "Starred".to_string(),
+                PropertyValue::Checkbox { checkbox: false },
+            ),
+            (
+                "Published At".to_string(),
+                PropertyValue::Date {
+                    date: Some(Date {
+                        start: Some(created_time),
+                        end: None,
+                    }),
+                },
+            ),
+        ]);
+
+        let result = self
+            .client
+            .create_page(DatabaseKind::Feed, page_props)
+            .await;
+
+        Ok(result?)
+    }
+
+    pub async fn get_rss_items(source: Source) -> Result<Vec<Item>, Box<dyn Error>> {
         let content = reqwest::get(&source.link).await?.bytes().await?;
         let channel = Channel::read_from(&content[..])?;
 
-        Ok(channel)
+        let offset_date = source.offset_date;
+
+        if let Some(offset_date) = offset_date {
+            let items = channel
+                .items
+                .into_iter()
+                .filter(|item| {
+                    let pub_date = item.pub_date.as_ref();
+
+                    if let Some(pub_date) = pub_date {
+                        let pub_date = Utc.datetime_from_str(
+                            &format!("{} 00:00:00", pub_date),
+                            "%Y-%m-%d %H:%M:%S",
+                        );
+
+                        if let Ok(pub_date) = pub_date {
+                            return offset_date.le(&pub_date.date_naive());
+                        }
+
+                        return false;
+                    }
+
+                    return true;
+                })
+                .collect();
+
+            return Ok(items);
+        }
+
+        Ok(channel.items)
     }
 }

@@ -2,7 +2,7 @@ use crate::notion::models::{Page, PropertyValue};
 
 #[derive(Debug)]
 pub struct FeedItem {
-    link: String,
+    pub link: String,
 }
 
 impl FeedItem {
