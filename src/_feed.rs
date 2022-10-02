@@ -1,3 +1,5 @@
+/*
+
 use crate::notion::{
     database::{DatabaseFilter, DatabaseKind, DatabaseQuery, Filter, FilterKind},
     models::{Date, Page, PropertyValue, RichText, Text},
@@ -8,11 +10,11 @@ use futures::{future, try_join};
 use rss::Channel;
 use std::{collections::HashMap, convert::identity, error::Error};
 
-pub struct Feed<'a> {
+pub struct _Feed<'a> {
     client: &'a Client<'a>,
 }
 
-impl<'a> Feed<'a> {
+impl<'a> _Feed<'a> {
     pub fn new(client: &'a Client<'a>) -> Feed<'a> {
         Self { client }
     }
@@ -208,3 +210,5 @@ fn map_page_to_links(pages: Vec<Page>) -> Vec<String> {
         .filter_map(identity)
         .collect::<Vec<String>>()
 }
+
+ */
