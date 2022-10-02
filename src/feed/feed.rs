@@ -1,12 +1,15 @@
+use chrono::{DateTime, TimeZone, Utc};
+use futures::{future, try_join};
+use rss::{Channel, Item};
+
 use crate::notion::{
     database::{DatabaseFilter, DatabaseKind, DatabaseQuery, Filter, FilterKind},
     models::{Date, Page, PropertyValue, RichText, Text},
     Client,
 };
-use chrono::{DateTime, Utc};
-use futures::{future, try_join};
-use rss::Channel;
 use std::{collections::HashMap, convert::identity, error::Error};
+
+use super::{feed_item::FeedItem, source::Source};
 
 pub struct Feed<'a> {
     client: &'a Client<'a>,
@@ -20,26 +23,31 @@ impl<'a> Feed<'a> {
     pub async fn run(&self) -> Result<(), Box<dyn Error>> {
         let (source_list, feed_list) = try_join!(self.get_source_list(), self.get_feed_list())?;
 
-        let channels = future::join_all(
+        let channel_items = future::join_all(
             source_list
                 .into_iter()
-                .map(|feed| Feed::<'_>::get_rss_items(feed)),
+                .map(|source| Feed::<'_>::get_rss_items(source)),
         )
         .await;
 
         let mut all_items = vec![];
 
-        channels.iter().for_each(|channel| {
-            if let Ok(channel) = channel {
-                all_items.extend(&channel.items);
+        channel_items.iter().for_each(|item| {
+            if let Ok(item) = item {
+                all_items.extend(item);
             }
         });
+
+        let feed_list_links = feed_list
+            .into_iter()
+            .map(|item| item.link)
+            .collect::<Vec<String>>();
 
         future::join_all(
             all_items
                 .iter()
                 .filter(|item| match &item.link {
-                    Some(link) => !feed_list.contains(link),
+                    Some(link) => !feed_list_links.contains(link),
                     None => false,
                 })
                 .map(|item| {
@@ -49,12 +57,15 @@ impl<'a> Feed<'a> {
 
                     let created_time = match pub_date {
                         Some(date) => {
-                            let date = DateTime::parse_from_rfc2822(date);
+                            let date = Utc.datetime_from_str(
+                                &format!("{} 00:00:00", date),
+                                "%Y-%m-%d %H:%M:%S",
+                            );
 
                             if let Ok(date) = date {
-                                Some(date.with_timezone(&Utc))
+                                Some(date)
                             } else {
-                                None
+                                Some(Utc::now())
                             }
                         }
                         None => Some(Utc::now()),
@@ -78,7 +89,7 @@ impl<'a> Feed<'a> {
         Ok(())
     }
 
-    pub async fn get_source_list(&self) -> Result<Vec<String>, Box<dyn Error>> {
+    pub async fn get_source_list(&self) -> Result<Vec<Source>, Box<dyn Error>> {
         let filter = DatabaseFilter::Compound {
             filter: HashMap::from([(
                 "or".to_string(),
@@ -102,10 +113,14 @@ impl<'a> Feed<'a> {
             .await?
             .results;
 
-        Ok(map_page_to_links(pages))
+        return Ok(pages
+            .iter()
+            .map(|page| return Source::new(page))
+            .filter_map(identity)
+            .collect::<Vec<Source>>());
     }
 
-    pub async fn get_feed_list(&self) -> Result<Vec<String>, Box<dyn Error>> {
+    pub async fn get_feed_list(&self) -> Result<Vec<FeedItem>, Box<dyn Error>> {
         let mut pages = vec![];
         let mut cursor: Option<String> = None;
 
@@ -133,7 +148,11 @@ impl<'a> Feed<'a> {
             }
         }
 
-        Ok(map_page_to_links(pages))
+        return Ok(pages
+            .iter()
+            .map(|page| return FeedItem::new(page))
+            .filter_map(identity)
+            .collect::<Vec<FeedItem>>());
     }
 
     pub async fn add_feed_entry(
@@ -183,28 +202,39 @@ impl<'a> Feed<'a> {
         Ok(result?)
     }
 
-    pub async fn get_rss_items(source: String) -> Result<Channel, Box<dyn Error>> {
-        let content = reqwest::get(source).await?.bytes().await?;
+    pub async fn get_rss_items(source: Source) -> Result<Vec<Item>, Box<dyn Error>> {
+        let content = reqwest::get(&source.link).await?.bytes().await?;
         let channel = Channel::read_from(&content[..])?;
-        Ok(channel)
+
+        let offset_date = source.offset_date;
+
+        if let Some(offset_date) = offset_date {
+            let items = channel
+                .items
+                .into_iter()
+                .filter(|item| {
+                    let pub_date = item.pub_date.as_ref();
+
+                    if let Some(pub_date) = pub_date {
+                        let pub_date = Utc.datetime_from_str(
+                            &format!("{} 00:00:00", pub_date),
+                            "%Y-%m-%d %H:%M:%S",
+                        );
+
+                        if let Ok(pub_date) = pub_date {
+                            return offset_date.le(&pub_date.date_naive());
+                        }
+
+                        return false;
+                    }
+
+                    return true;
+                })
+                .collect();
+
+            return Ok(items);
+        }
+
+        Ok(channel.items)
     }
-}
-
-fn map_page_to_links(pages: Vec<Page>) -> Vec<String> {
-    pages
-        .iter()
-        .map(|item| {
-            let properties = item.properties.as_ref()?;
-
-            match properties.get("Link") {
-                Some(PropertyValue::Url { url }) => match url {
-                    Some(url) => Some(url.to_string()),
-                    None => None,
-                },
-
-                _ => None,
-            }
-        })
-        .filter_map(identity)
-        .collect::<Vec<String>>()
 }
