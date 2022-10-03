@@ -9,6 +9,7 @@ jobs:
   build:
     name: Build Rust
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'abereghici'
     steps:
       - name: Set up Repository
         uses: actions/checkout@v2
