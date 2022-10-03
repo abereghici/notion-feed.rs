@@ -14,8 +14,8 @@ jobs:
       NOTION_SOURCE_DATABASE_ID: ${{ secrets.NOTION_SOURCE_DATABASE_ID }}
       NOTION_FEED_DATABASE_ID: ${{ secrets.NOTION_FEED_DATABASE_ID }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - run: cargo run
+      - name: Update Notion Feed
+        run: |
+          curl -L -o notion-feed https://github.com/abereghici/notion-feed.rs/raw/build/build/notion-feed 
+          chmod +x ./notion-feed 
+          ./notion-feed

@@ -22,7 +22,7 @@ impl Config {
         let notion_feed_database_id =
             get_config_value(notion_feed_database_id, NOTION_FEED_DATABASE_ID)?;
 
-        return Ok(Config {
+        return Ok(Self {
             notion_api_token,
             notion_source_database_id,
             notion_feed_database_id,
