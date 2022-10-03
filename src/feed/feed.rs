@@ -1,4 +1,4 @@
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Local, NaiveDate, TimeZone, Utc};
 use futures::{future, try_join};
 use rss::{Channel, Item};
 
@@ -55,29 +55,22 @@ impl<'a> Feed<'a> {
                     let link = &item.link;
                     let pub_date = &item.pub_date;
 
-                    let created_time = match pub_date {
-                        Some(date) => {
-                            let date = Utc.datetime_from_str(
-                                &format!("{} 00:00:00", date),
-                                "%Y-%m-%d %H:%M:%S",
-                            );
-
-                            if let Ok(date) = date {
-                                Some(date)
-                            } else {
-                                Some(Utc::now())
-                            }
+                    let created_date = match pub_date {
+                        Some(pub_date) => {
+                            let pub_date =
+                                parse_date(&pub_date).unwrap_or(Local::now().date_naive());
+                            Some(Utc.from_utc_date(&pub_date).and_hms(0, 0, 0))
                         }
                         None => Some(Utc::now()),
                     };
 
-                    if let (Some(title), Some(link), Some(created_time)) =
-                        (title, link, created_time)
+                    if let (Some(title), Some(link), Some(created_date)) =
+                        (title, link, created_date)
                     {
                         return Some(self.add_feed_entry(
                             title.to_string(),
                             link.to_string(),
-                            created_time,
+                            created_date,
                         ));
                     }
                     None
@@ -216,13 +209,10 @@ impl<'a> Feed<'a> {
                     let pub_date = item.pub_date.as_ref();
 
                     if let Some(pub_date) = pub_date {
-                        let pub_date = Utc.datetime_from_str(
-                            &format!("{} 00:00:00", pub_date),
-                            "%Y-%m-%d %H:%M:%S",
-                        );
+                        let pub_date = parse_date(pub_date);
 
-                        if let Ok(pub_date) = pub_date {
-                            return offset_date.le(&pub_date.date_naive());
+                        if let Some(pub_date) = pub_date {
+                            return pub_date.ge(&offset_date);
                         }
 
                         return false;
@@ -237,4 +227,25 @@ impl<'a> Feed<'a> {
 
         Ok(channel.items)
     }
+}
+
+fn parse_date(input: &String) -> Option<NaiveDate> {
+    let rfc2822 = DateTime::parse_from_rfc2822(&input);
+
+    if let Ok(rfc2822) = rfc2822 {
+        return Some(rfc2822.date_naive());
+    }
+
+    let rfc3339 = DateTime::parse_from_rfc3339(&input);
+
+    if let Ok(rfc3339) = rfc3339 {
+        return Some(rfc3339.date_naive());
+    }
+
+    let date_only = NaiveDate::parse_from_str(&input, "%Y-%m-%d");
+    if let Ok(date_only) = date_only {
+        return Some(date_only);
+    }
+
+    None
 }

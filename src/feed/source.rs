@@ -1,4 +1,4 @@
-use chrono::{Local, Months, NaiveDate};
+use chrono::{Months, NaiveDate, Utc};
 use regex::Regex;
 
 use crate::notion::models::{Page, PropertyValue, RichText};
@@ -35,8 +35,10 @@ impl Source {
         };
 
         let offset_date = match offset_date {
-            offset if offset > 0 => Local::now()
+            offset if offset > 0 => Utc::now()
                 .date_naive()
+                .and_hms(0, 0, 0)
+                .date()
                 .checked_sub_months(Months::new(offset)),
             _ => None,
         };
